@@ -278,6 +278,7 @@ func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
 	json.NewDecoder(res.Body).Decode(&taskVariable)
 
 	extractedData := make(map[string]interface{})
+	extractedData["id"]=id
 	for _, value := range taskVariable {
 		key := value["name"]
 		data := value["value"]
