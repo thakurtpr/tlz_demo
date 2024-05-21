@@ -516,7 +516,7 @@ func tlzVariable(response http.ResponseWriter,request *http.Request){
 	}`,idBody.Id)
 	payload:=strings.NewReader(dataToSend)
 	fmt.Println(payload)
-	req,err:=http.NewRequest("POST","http://34.93.102.191:4005/getTasks",payload)
+	req,err:=http.NewRequest("POST","http://34.93.102.191:8086/getTasks",payload)
 	if err!=nil{
 		fmt.Println("Error:",err)
 	}
@@ -556,7 +556,7 @@ func tlzVariable(response http.ResponseWriter,request *http.Request){
 	   }`,idP,formId,processDefinitionKey,formVersion)
 	//    fmt.Println(dataToSEnd)
 		payload:=strings.NewReader(dataToSEnd)
-		req,err:=http.NewRequest("POST","http://34.93.102.191:4005/fetchForm",payload)
+		req,err:=http.NewRequest("POST","http://34.93.102.191:8086/fetchForm",payload)
 		if err!=nil{
 			fmt.Println("Error:",err)
 		}
