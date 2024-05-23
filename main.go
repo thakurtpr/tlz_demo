@@ -4,12 +4,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	// "io/ioutil"
-
-	// "io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -34,6 +32,7 @@ type IncomingData struct {
 	Id       string     `json:"id"`
 	Variable []Variable `json:"variables"`
 }
+
 
 var client = &http.Client{
 	Transport: &http.Transport{
@@ -93,7 +92,7 @@ func getTasksHandler(response http.ResponseWriter, request *http.Request) {
 	payload := fmt.Sprintf(`{
 		"state": "CREATED",
 		"assigned": true,
-		"assignee": "%s"
+		"assignee":	"%s"
 	}`, myid)
 
 	reader := strings.NewReader(payload)
@@ -330,17 +329,15 @@ func fetchForm(acessToken string, formIDD string, processDefinitionKey string, f
 }
 
 func completeHandler(response http.ResponseWriter, request *http.Request) {
-
+	response.Header().Set("Content-Type", "application/json")
 	Token, err := accessTokenCall()
 	if err != nil {
 		fmt.Println("Error Getting The Token")
 	}
 	defer request.Body.Close()
 	var incData IncomingData
-	err = json.NewDecoder(request.Body).Decode(&incData)
-	if err != nil {
-		fmt.Println("Error", err)
-	}
+	json.NewDecoder(request.Body).Decode(&incData)
+	
 
 	// fmt.Println(incData)
 
@@ -350,19 +347,19 @@ func completeHandler(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if err != nil || Token == nil {
-		log.Println("Error:", err)
-	}
-
+	// if err != nil || Token == nil {
+	// 	log.Println("Error:", err)
+	// }
 	responseData := completeTask(&incData, Token.(string))
-	response.Header().Set("Content-Type", "application/json")
-	TaskState, ok := responseData["taskState"].(string)
-
-	if TaskState == "" || !ok {
+	// fmt.Println(responseData)
+	
+	TaskState, ok := responseData["taskState"]
+	if TaskState == "" && !ok  {
 		errorMessage, _ := responseData["message"].(string)
 		handleError(response, errorMessage)
-		log.Println("Unable To Complete The Task")
+		log.Println("There is An Issue While Completing The Task")
 	} else {
+		log.Println("Task Completed SuccessFully")
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"Success": "True",
 			"Message": "Task Completed SuccessFully",
@@ -376,6 +373,14 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 	id := incData.Id
 	url := fmt.Sprintf("http://34.93.102.191:8082/v1/tasks/%s/complete", id)
 	method := "PATCH"
+	
+	//Add Aditional BackWard Slash
+	for key, _ := range incData.Variable {
+		incData.Variable[key].Value = strconv.Quote(incData.Variable[key].Value)
+	}
+	
+	
+	// fmt.Println(incData.Variable)
 
 	x, err := json.Marshal(incData.Variable)
 	if err != nil {
@@ -384,7 +389,6 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 
 	D := "{\"variables\":" + string(x) + "}"
 	reader := strings.NewReader(D)
-
 	req, err := http.NewRequest(method, url, reader)
 
 	if err != nil {
@@ -398,15 +402,15 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error: Check 2", err)
 		return nil
 	}
 	defer res.Body.Close()
 
 	var resposneDAta map[string]interface{}
 	json.NewDecoder(res.Body).Decode(&resposneDAta)
+	// fmt.Println(resposneDAta)
 	return resposneDAta
-
 }
 
 func testHandler(response http.ResponseWriter, request *http.Request) {
@@ -509,6 +513,13 @@ func getToken(response http.ResponseWriter, request *http.Request) {
 	defer res.Body.Close()
 }
 
+/* 
+Working := 
+--->At first we are extracting the id from the reqBody 
+--->Making request to /getTasks api to get all the tasks using the ID
+---> 
+
+*/
 func tlzVariable(response http.ResponseWriter,request *http.Request){
 	var idBody Id 
 	json.NewDecoder(request.Body).Decode(&idBody)
