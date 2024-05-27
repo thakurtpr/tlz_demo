@@ -400,7 +400,7 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 	method := "PATCH"
 
 	//Add Aditional BackWard Slash
-	for key, _ := range incData.Variable {
+	for key := range incData.Variable {
 		incData.Variable[key].Value = strconv.Quote(incData.Variable[key].Value)
 	}
 
@@ -644,7 +644,6 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 		fmt.Println("Error Getting Token:", err)
 		return
 	}
-
 	bodyIoUtilData, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		fmt.Println(err)
