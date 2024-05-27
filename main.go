@@ -7,9 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/smtp"
 	"net/url"
 	"strconv"
 	"strings"
+	"tlz_go/utils"
+
+	"github.com/sethvargo/go-password/password"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -32,6 +36,21 @@ type Variable struct {
 type IncomingData struct {
 	Id       string     `json:"id"`
 	Variable []Variable `json:"variables"`
+}
+type User struct {
+	FirstName string `json:"firstname"`
+	LastName  string `json:"lastname"`
+	Email     string `json:"email"`
+	Enabled   bool   `json:"enabled"`
+	PhoneNo   string `json:"phoneno"`
+	// Username  string `json:"username"`
+	// Password  string `json:"password"`
+}
+
+type Credential struct {
+	Type      string `json:"type"`
+	Value     string `json:"value"`
+	Temporary bool   `json:"temporary"`
 }
 
 var client = &http.Client{
@@ -526,7 +545,7 @@ Working :=
 --->Making request to /getTasks api to get all the tasks using the ID sent in Request Body
 --->
 */
-func tlzVariable(response http.ResponseWriter, request *http.Request) {
+func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 	accessToken, err := accessTokenCall()
 	if err != nil || accessToken == nil {
 		fmt.Println("Error Getting Token:", err)
@@ -535,10 +554,10 @@ func tlzVariable(response http.ResponseWriter, request *http.Request) {
 	var idBody Id
 	json.NewDecoder(request.Body).Decode(&idBody)
 	dataToSend := fmt.Sprintf(`{
-		"Id":"%s"
+		"assignee":"%s"
 	}`, idBody.Id)
 	payload := strings.NewReader(dataToSend)
-	fmt.Println(payload)
+	// fmt.Println(payload)
 	req, err := http.NewRequest("POST", "http://34.93.102.191:8086/getTasks", payload)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -555,8 +574,13 @@ func tlzVariable(response http.ResponseWriter, request *http.Request) {
 	// var processDefinitionKey interface{}
 	// var formVersion interface{}
 	// var newReqData []map[string]interface{}
-	responseData := []interface{}{}
-	for _, value := range resData {
+	finalResponseData := []interface{}{}
+
+	var tempData map[string]interface{}
+	// finalResponseData = append(finalResponseData, resData)
+	for key, value := range resData {
+		tempData = resData[key]
+		// fmt.Println(tempData)
 		idP := value["id"]
 		fmt.Println(idP)
 
@@ -585,7 +609,7 @@ func tlzVariable(response http.ResponseWriter, request *http.Request) {
 
 		var resTaskVariables []map[string]string
 		json.NewDecoder(res.Body).Decode(&resTaskVariables)
-		fmt.Println("Response From Api Call of Task Variables Search:==", resTaskVariables)
+		// fmt.Println("Response From Api Call of Task Variables Search:==", resTaskVariables)
 		extractedData := make(map[string]interface{})
 		extractedData["id"] = idP
 		for _, value := range resTaskVariables {
@@ -596,16 +620,292 @@ func tlzVariable(response http.ResponseWriter, request *http.Request) {
 		// var newReqData map[string]interface{}
 		// json.NewDecoder(res.Body).Decode(&newReqData)
 		// fmt.Println(newReqData)
-		responseData = append(responseData, extractedData)
+		// finalResponseData = append(finalResponseData, extractedData)
+
+		for key, value := range tempData {
+			extractedData[key] = value
+		}
+
+		fmt.Println(extractedData)
+		finalResponseData = append(finalResponseData, extractedData)
 	}
+	// final=append(resData, finalResponseData)
 	response.Header().Set("Content-Type", "application/json")
-	fmt.Println("Final Data Sending From Api:===", responseData)
+	// fmt.Println("Final Data Sending From Api:===", finalResponseData)
 	json.NewEncoder(response).Encode(map[string]interface{}{
 		"success": "true",
-		"data":    responseData,
+		"data":    finalResponseData,
 	})
 
 }
+func nextFormHandler(response http.ResponseWriter, request *http.Request) {
+	accessToken, err := accessTokenCall()
+	if err != nil || accessToken == nil {
+		fmt.Println("Error Getting Token:", err)
+		return
+	}
+
+	bodyIoUtilData, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	reader := strings.NewReader(string(bodyIoUtilData))
+
+	// fmt.Println(payload)
+	req, err := http.NewRequest("POST", "http://34.93.102.191:8086/getTasks", reader)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	var resData []map[string]interface{}
+	json.NewDecoder(res.Body).Decode(&resData)
+
+	// var idP interface{}
+	// var formId interface{}
+	// var processDefinitionKey interface{}
+	// var formVersion interface{}
+	// var newReqData []map[string]interface{}
+	finalResponseData := []interface{}{}
+
+	var tempData map[string]interface{}
+	// finalResponseData = append(finalResponseData, resData)
+	for key, value := range resData {
+		tempData = resData[key]
+		// fmt.Println(tempData)
+		idP := value["id"]
+		fmt.Println(idP)
+
+		url := fmt.Sprintf("http://34.93.102.191:8082/v1/tasks/%s/variables/search", idP)
+		method := "POST"
+
+		payload := strings.NewReader(``)
+
+		req, err := http.NewRequest(method, url, payload)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		Token := fmt.Sprintf("Bearer %s", accessToken)
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Accept", "application/json")
+		req.Header.Add("Authorization", Token)
+
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer res.Body.Close()
+
+		var resTaskVariables []map[string]string
+		json.NewDecoder(res.Body).Decode(&resTaskVariables)
+		// fmt.Println("Response From Api Call of Task Variables Search:==", resTaskVariables)
+		extractedData := make(map[string]interface{})
+		extractedData["id"] = idP
+		for _, value := range resTaskVariables {
+			key := value["name"]
+			data := value["value"]
+			extractedData[key] = data
+		}
+		// var newReqData map[string]interface{}
+		// json.NewDecoder(res.Body).Decode(&newReqData)
+		// fmt.Println(newReqData)
+		// finalResponseData = append(finalResponseData, extractedData)
+
+		for key, value := range tempData {
+			extractedData[key] = value
+		}
+
+		fmt.Println(extractedData)
+		finalResponseData = append(finalResponseData, extractedData)
+	}
+	// final=append(resData, finalResponseData)
+	response.Header().Set("Content-Type", "application/json")
+	// fmt.Println("Final Data Sending From Api:===", finalResponseData)
+	json.NewEncoder(response).Encode(map[string]interface{}{
+		"success": "true",
+		"data":    finalResponseData,
+	})
+
+}
+
+func setPassword(Token interface{}, userId string, resPass string) *http.Response {
+	url := "https://34.93.102.191:18080/auth/admin/realms/camunda-platform/users/" + userId + "/reset-password"
+	method := "PUT"
+	send := fmt.Sprintf(`{
+		"temporary": false,
+		"type": "password",
+		"value": "%s"
+	}`, resPass)
+
+	payload := strings.NewReader(send)
+	req, err := http.NewRequest(method, url, payload)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	accessToken := fmt.Sprintf("Bearer %s", Token)
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Add("Content-Type", "application/json")
+	respPassword, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	if respPassword.StatusCode == 204 {
+		fmt.Println("Password set successfully")
+	} else {
+
+		fmt.Println("Failed to set password")
+	}
+	return respPassword
+}
+
+func RoleAssign(Token interface{}, respPassword *http.Response, userId string, response http.ResponseWriter, resPass string, incBodyData User) {
+	url := "https://34.93.102.191:18080/auth/admin/realms/camunda-platform/users/" + userId + "/role-mappings/realm"
+	method := "POST"
+	dataToSend := `[
+		{
+			"id": "8ba1339f-ca96-491d-b59f-575a1d248fcd",
+			"name": "Tasklist",
+			"description": "Grants full access to Tasklist",
+			"composite": true,
+			"clientRole": false,
+			"containerId": "camunda-platform"
+		}
+	]`
+
+	payload := strings.NewReader(dataToSend)
+	req, err := http.NewRequest(method, url, payload)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	accessToken := fmt.Sprintf("Bearer %s", Token)
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Add("Content-Type", "application/json")
+	respDatacheck, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	if respDatacheck.StatusCode == 204 && respPassword.StatusCode == 204 {
+		//  Send Details To The User
+		auth := smtp.PlainAuth("", "tprop48@gmail.com", "ovgo agtz dsdj bwhq", "smtp.gmail.com")
+		to := []string{incBodyData.Email}
+		msgStr := fmt.Sprintf("To: %s\r\nSubject: Your Details\r\n\r\nID:%s \r\n Password:%s\r\n", incBodyData.Email, incBodyData.FirstName, resPass)
+		msg := []byte(msgStr)
+		err = smtp.SendMail("smtp.gmail.com:587", auth, "tprop48@gmail.com", to, msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		json.NewEncoder(response).Encode(map[string]interface{}{
+			"Success": "True",
+			"Message": "Check Mail For Id And Password",
+		})
+		fmt.Println("Role Assigned successfully")
+	} else {
+		json.NewEncoder(response).Encode(map[string]interface{}{
+			"Success": "false",
+			"Message": "User Created But Failed To Assign Role || Password",
+		})
+		fmt.Println("Failed to Assign Role")
+	}
+}
+
+/*
+------>
+*/
+
+func createUserHandler(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Content-Type", "application/json")
+	Token, err := utils.AccessTokenCall()
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	var incBodyData User
+
+	//Username Generator
+	// fake := faker.New()
+	// username:=fake.Person().FirstName()
+	// fmt.Println(username+" User Generated")
+
+	err = json.NewDecoder(request.Body).Decode(&incBodyData)
+	if err != nil {
+		fmt.Println("Error", err)
+	}
+	url := "https://34.93.102.191:18080/auth/admin/realms/camunda-platform/users"
+	method := "POST"
+	dataToSend := fmt.Sprintf(`{
+		"firstName": "%s",
+		"lastName": "%s",
+		"email": "%s",
+		"enabled": true,
+		"username": "%s"
+	}`, incBodyData.FirstName, incBodyData.LastName, incBodyData.Email, incBodyData.FirstName)
+
+	payload := strings.NewReader(dataToSend)
+
+	req, err := http.NewRequest(method, url, payload)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	accessToken := fmt.Sprintf("Bearer %s", Token)
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	var responseCreateUser map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&responseCreateUser)
+	if err != nil {
+		fmt.Println("Error", err)
+	}
+	// fmt.Println(responseCreateUser)
+
+	if resp.StatusCode == 201 {
+		fmt.Println("User created successfully")
+
+		//password Generator
+		resPass, err := password.Generate(4, 4, 0, false, false)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		/*
+			------------->[...........................GET THE USER ID FOR ROLE ASSIGNMENT................ ...............]
+		*/
+		userid, err := utils.GetUserId(incBodyData.FirstName, accessToken)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		userId, ok := userid.(string)
+		fmt.Println(userId, "Received")
+
+		if !ok {
+			fmt.Println("Error Converting userID")
+		}
+		//function to set Password Of the user
+		respPassword := setPassword(Token, userId, resPass)
+		/*
+			------------->[.............................ASSIGN ROLE OF TASKLIST..........................................]
+		*/
+		RoleAssign(Token, respPassword, userId, response, resPass, incBodyData)
+
+	} else {
+		json.NewEncoder(response).Encode(map[string]interface{}{
+			"Success": "false",
+			"Message": responseCreateUser["errorMessage"],
+		})
+		fmt.Println("Failed to create user")
+	}
+
+}
+
 func main() {
 	r := mux.NewRouter()
 	// s := r.PathPrefix("/api").Subrouter()
@@ -617,14 +917,9 @@ func main() {
 	r.HandleFunc("/process", processHandler).Methods("POST")
 	r.HandleFunc("/test", testHandler).Methods("POST")
 	r.HandleFunc("/getToken", getToken).Methods("POST")
-	r.HandleFunc("/tlzVariable", tlzVariable).Methods("POST")
-
-	// handler := cors.Default().Handler(r)
-
-	// s := &http.Server{
-	// 	Addr:    ":4005",
-	// 	Handler: handler,
-	// }
+	r.HandleFunc("/tlzVariable", tlzVariableHandler).Methods("POST")
+	r.HandleFunc("/nextForm", nextFormHandler).Methods("POST")
+	r.HandleFunc("/createUser", createUserHandler).Methods("POST")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
