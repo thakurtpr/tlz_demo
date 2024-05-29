@@ -639,6 +639,7 @@ func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 
 }
 func nextFormHandler(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Content-Type", "application/json")
 	accessToken, err := accessTokenCall()
 	if err != nil || accessToken == nil {
 		fmt.Println("Error Getting Token:", err)
@@ -662,6 +663,14 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 		fmt.Println("Error:", err)
 	}
 	var resData []map[string]interface{}
+	fmt.Println(resData)
+	if resData == nil {
+		json.NewEncoder(response).Encode(map[string]interface{}{
+			"success": "false",
+			"data":    "null",
+		})
+		return
+	}
 	json.NewDecoder(res.Body).Decode(&resData)
 
 	// var idP interface{}
@@ -725,12 +734,19 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 		finalResponseData = append(finalResponseData, extractedData)
 	}
 	// final=append(resData, finalResponseData)
-	response.Header().Set("Content-Type", "application/json")
 	// fmt.Println("Final Data Sending From Api:===", finalResponseData)
-	json.NewEncoder(response).Encode(map[string]interface{}{
-		"success": "true",
-		"data":    finalResponseData,
-	})
+	if finalResponseData == nil {
+		json.NewEncoder(response).Encode(map[string]interface{}{
+			"success": "false",
+			"data":    "null",
+		})
+		return
+	} else {
+		json.NewEncoder(response).Encode(map[string]interface{}{
+			"success": "true",
+			"data":    finalResponseData,
+		})
+	}
 
 }
 
