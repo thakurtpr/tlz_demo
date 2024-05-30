@@ -663,7 +663,8 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 		fmt.Println("Error:", err)
 	}
 	var resData []map[string]interface{}
-	fmt.Println(resData)
+	json.NewDecoder(res.Body).Decode(&resData)
+	// fmt.Println("resData is : ", resData)
 	if resData == nil {
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"success": "false",
@@ -671,7 +672,6 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 		})
 		return
 	}
-	json.NewDecoder(res.Body).Decode(&resData)
 
 	// var idP interface{}
 	// var formId interface{}
@@ -738,7 +738,7 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 	if finalResponseData == nil {
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"success": "false",
-			"data":    "null",
+			"data":    "null2",
 		})
 		return
 	} else {
