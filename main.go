@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 	"tlz_go/utils"
 
 	"github.com/sethvargo/go-password/password"
@@ -58,6 +59,7 @@ var client = &http.Client{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	},
 }
+var timestamp string = time.Now().String()
 
 func accessTokenCall() (accessToken interface{}, err error) {
 
@@ -68,14 +70,14 @@ func accessTokenCall() (accessToken interface{}, err error) {
 	req, err := http.NewRequest(method, url, payload)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return nil, fmt.Errorf("Error:%v", err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return nil, fmt.Errorf("Error:%v", err)
 	}
 	defer res.Body.Close()
@@ -89,9 +91,9 @@ func accessTokenCall() (accessToken interface{}, err error) {
 func getTasksHandler(response http.ResponseWriter, request *http.Request) {
 
 	accessToken, err := accessTokenCall()
-	// fmt.Println(accessToken)
+	// fmt.Println(timestamp,":",accessToken)
 	if err != nil || accessToken == nil {
-		fmt.Println("Error In Getting Token:", err)
+		fmt.Println(timestamp, ":", "Error In Getting Token:", err)
 	}
 
 	// var idBody Id
@@ -101,7 +103,7 @@ func getTasksHandler(response http.ResponseWriter, request *http.Request) {
 	// 	handleError(response, "Do Provide The ID")
 	// 	return
 	// }
-	// fmt.Println(idBody.Id)
+	// fmt.Println(timestamp,":",idBody.Id)
 
 	// myid := idBody.Id
 
@@ -116,16 +118,16 @@ func getTasksHandler(response http.ResponseWriter, request *http.Request) {
 
 	bodyIoUtilData, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 
 	reader := strings.NewReader(string(bodyIoUtilData))
-	fmt.Println(reader)
+	fmt.Println(timestamp, ":", reader)
 
 	req, err := http.NewRequest(method, url, reader)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 
@@ -136,14 +138,14 @@ func getTasksHandler(response http.ResponseWriter, request *http.Request) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 	defer res.Body.Close()
 
 	// data,err:=ioutil.ReadAll(res.Body)
-	// // fmt.Println(err)
-	// fmt.Println(string(data))
+	// // fmt.Println(timestamp,":",err)
+	// fmt.Println(timestamp,":",string(data))
 
 	// getData := string(data)
 
@@ -152,9 +154,9 @@ func getTasksHandler(response http.ResponseWriter, request *http.Request) {
 	err = json.NewDecoder(res.Body).Decode(&getTaskData)
 
 	if err != nil {
-		fmt.Println("Error Decoding getTaskData:", err)
+		fmt.Println(timestamp, ":", "Error Decoding getTaskData:", err)
 	}
-	// fmt.Println(getTaskData)
+	// fmt.Println(timestamp,":",getTaskData)
 	response.Header().Set("Content-Type", "application/json")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -179,7 +181,7 @@ func ValidateLogin(next http.Handler) http.Handler {
 		var req LoginRequest
 		err := json.NewDecoder(request.Body).Decode(&req)
 		if err != nil {
-			fmt.Println("Error While Decoding in Validation:", err)
+			fmt.Println(timestamp, ":", "Error While Decoding in Validation:", err)
 			return
 		}
 		if req.Username == "" && req.Password == "" {
@@ -196,7 +198,7 @@ func handleError(response http.ResponseWriter, message string) {
 		"Success": "False",
 		"Message": message,
 	})
-	fmt.Println(message)
+	fmt.Println(timestamp, ":", message)
 }
 
 func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
@@ -204,7 +206,7 @@ func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
 	var requestBody map[string]interface{}
 	json.NewDecoder(request.Body).Decode(&requestBody)
 
-	fmt.Println(requestBody)
+	fmt.Println(timestamp, ":", requestBody)
 
 	if requestBody == nil {
 		handleError(response, "Do Provide Required Data")
@@ -272,7 +274,7 @@ func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
 	}
 	accessToken, err := accessTokenCall()
 	if err != nil || accessToken == nil {
-		fmt.Println("Error Getting Token:", err)
+		fmt.Println(timestamp, ":", "Error Getting Token:", err)
 		return
 	}
 
@@ -283,7 +285,7 @@ func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
 
 	req, err := http.NewRequest(method, url, payload)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 
@@ -294,7 +296,7 @@ func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 	defer res.Body.Close()
@@ -323,13 +325,13 @@ func fetchDataAndForm(response http.ResponseWriter, request *http.Request) {
 func fetchForm(acessToken string, formIDD string, processDefinitionKey string, formVersion int) map[string]interface{} {
 	// FormVersion := fmt.Sprintf("%.0f", formVersion)
 	url := fmt.Sprintf("http://34.93.102.191:8082/v1/forms/%s?processDefinitionKey=%s&version=%v", formIDD, processDefinitionKey, formVersion)
-	// fmt.Println(url)
+	// fmt.Println(timestamp,":",url)
 
 	method := "GET"
 
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return nil
 	}
 
@@ -340,7 +342,7 @@ func fetchForm(acessToken string, formIDD string, processDefinitionKey string, f
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error Making Request", err)
+		fmt.Println(timestamp, ":", "Error Making Request", err)
 		return nil
 	}
 	defer res.Body.Close()
@@ -358,13 +360,13 @@ func completeHandler(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	Token, err := accessTokenCall()
 	if err != nil {
-		fmt.Println("Error Getting The Token")
+		fmt.Println(timestamp, ":", "Error Getting The Token")
 	}
 	defer request.Body.Close()
 	var incData IncomingData
 	json.NewDecoder(request.Body).Decode(&incData)
 
-	// fmt.Println(incData)
+	// fmt.Println(timestamp,":",incData)
 
 	// json.Unmarshal(data, &incData)
 	if incData.Id == "" {
@@ -376,7 +378,7 @@ func completeHandler(response http.ResponseWriter, request *http.Request) {
 	// 	log.Println("Error:", err)
 	// }
 	responseData := completeTask(&incData, Token.(string))
-	// fmt.Println(responseData)
+	// fmt.Println(timestamp,":",responseData)
 
 	TaskState, ok := responseData["taskState"]
 	if TaskState == "" && !ok {
@@ -404,11 +406,11 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 		incData.Variable[key].Value = strconv.Quote(incData.Variable[key].Value)
 	}
 
-	// fmt.Println(incData.Variable)
+	// fmt.Println(timestamp,":",incData.Variable)
 
 	x, err := json.Marshal(incData.Variable)
 	if err != nil {
-		fmt.Println("Error While Marshalling Data:", err)
+		fmt.Println(timestamp, ":", "Error While Marshalling Data:", err)
 	}
 
 	D := "{\"variables\":" + string(x) + "}"
@@ -416,7 +418,7 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 	req, err := http.NewRequest(method, url, reader)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return nil
 	}
 	accessToken := fmt.Sprintf("Bearer %s", token)
@@ -426,14 +428,14 @@ func completeTask(incData *IncomingData, token string) map[string]interface{} {
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error: Check 2", err)
+		fmt.Println(timestamp, ":", "Error: Check 2", err)
 		return nil
 	}
 	defer res.Body.Close()
 
 	var resposneDAta map[string]interface{}
 	json.NewDecoder(res.Body).Decode(&resposneDAta)
-	// fmt.Println(resposneDAta)
+	// fmt.Println(timestamp,":",resposneDAta)
 	return resposneDAta
 }
 
@@ -450,7 +452,7 @@ func testHandler(response http.ResponseWriter, request *http.Request) {
 		emptyMap = append(emptyMap, temp)
 	}
 
-	// fmt.Println(emptyMap)
+	// fmt.Println(timestamp,":",emptyMap)
 	response.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(response).Encode(emptyMap)
 }
@@ -461,14 +463,14 @@ func processHandler(response http.ResponseWriter, request *http.Request) {
 
 	accessToken := dataToken["access_token"].(string)
 
-	// fmt.Println(accessToken)
+	// fmt.Println(timestamp,":",accessToken)
 
 	url := "http://34.93.102.191:8082/v1/internal/processes"
 	method := "GET"
 
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 
@@ -479,7 +481,7 @@ func processHandler(response http.ResponseWriter, request *http.Request) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 	response.Header().Set("Content-Type", "application/json")
@@ -488,7 +490,7 @@ func processHandler(response http.ResponseWriter, request *http.Request) {
 	var resData []map[string]interface{}
 	json.NewDecoder(res.Body).Decode(&resData)
 
-	// fmt.Println(resData)
+	// fmt.Println(timestamp,":",resData)
 
 	json.NewEncoder(response).Encode(resData)
 
@@ -504,7 +506,7 @@ func getToken(response http.ResponseWriter, request *http.Request) {
 	method := "POST"
 	var reqData Details
 	json.NewDecoder(request.Body).Decode(&reqData)
-	fmt.Println(reqData)
+	fmt.Println(timestamp, ":", reqData)
 
 	data := url.Values{}
 	data.Set("client_id", "access_token")
@@ -515,7 +517,7 @@ func getToken(response http.ResponseWriter, request *http.Request) {
 
 	req, err := http.NewRequest(method, urll, strings.NewReader(data.Encode()))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -523,7 +525,7 @@ func getToken(response http.ResponseWriter, request *http.Request) {
 	// client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 
@@ -548,23 +550,32 @@ Working :=
 func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 	accessToken, err := accessTokenCall()
 	if err != nil || accessToken == nil {
-		fmt.Println("Error Getting Token:", err)
+		fmt.Println(timestamp, ":", "Error Getting Token:", err)
 		return
 	}
-	var idBody Id
-	json.NewDecoder(request.Body).Decode(&idBody)
-	dataToSend := fmt.Sprintf(`{
-		"assignee":"%s"
-	}`, idBody.Id)
-	payload := strings.NewReader(dataToSend)
-	// fmt.Println(payload)
-	req, err := http.NewRequest("POST", "http://34.93.102.191:8086/getTasks", payload)
+
+	bodyIoUtilData, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", err)
+		return
+	}
+
+	reader := strings.NewReader(string(bodyIoUtilData))
+	fmt.Println(timestamp, ":", reader)
+	// var idBody Id
+	// json.NewDecoder(request.Body).Decode(&idBody)
+	// dataToSend := fmt.Sprintf(`{
+	// 	"assignee":"%s"
+	// }`, idBody.Id)
+	// payload := strings.NewReader(dataToSend)
+	// fmt.Println(timestamp,":",payload)
+	req, err := http.NewRequest("POST", "http://34.93.102.191:8086/getTasks", reader)
+	if err != nil {
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	var resData []map[string]interface{}
 	json.NewDecoder(res.Body).Decode(&resData)
@@ -580,9 +591,9 @@ func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 	// finalResponseData = append(finalResponseData, resData)
 	for key, value := range resData {
 		tempData = resData[key]
-		// fmt.Println(tempData)
+		// fmt.Println(timestamp,":",tempData)
 		idP := value["id"]
-		fmt.Println(idP)
+		fmt.Println(timestamp, ":", " Id :", idP)
 
 		url := fmt.Sprintf("http://34.93.102.191:8082/v1/tasks/%s/variables/search", idP)
 		method := "POST"
@@ -591,7 +602,7 @@ func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 
 		req, err := http.NewRequest(method, url, payload)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(timestamp, ":", err)
 			return
 		}
 
@@ -602,14 +613,14 @@ func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 
 		res, err := client.Do(req)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(timestamp, ":", err)
 			return
 		}
 		defer res.Body.Close()
 
 		var resTaskVariables []map[string]string
 		json.NewDecoder(res.Body).Decode(&resTaskVariables)
-		// fmt.Println("Response From Api Call of Task Variables Search:==", resTaskVariables)
+		// fmt.Println(timestamp,":","Response From Api Call of Task Variables Search:==", resTaskVariables)
 		extractedData := make(map[string]interface{})
 		extractedData["id"] = idP
 		for _, value := range resTaskVariables {
@@ -619,19 +630,19 @@ func tlzVariableHandler(response http.ResponseWriter, request *http.Request) {
 		}
 		// var newReqData map[string]interface{}
 		// json.NewDecoder(res.Body).Decode(&newReqData)
-		// fmt.Println(newReqData)
+		// fmt.Println(timestamp,":",newReqData)
 		// finalResponseData = append(finalResponseData, extractedData)
 
 		for key, value := range tempData {
 			extractedData[key] = value
 		}
 
-		fmt.Println(extractedData)
+		// fmt.Println(timestamp, ":"," ", extractedData)
 		finalResponseData = append(finalResponseData, extractedData)
 	}
 	// final=append(resData, finalResponseData)
 	response.Header().Set("Content-Type", "application/json")
-	// fmt.Println("Final Data Sending From Api:===", finalResponseData)
+	fmt.Println(timestamp, ":", "Final Data Sending From Api:===", finalResponseData)
 	json.NewEncoder(response).Encode(map[string]interface{}{
 		"success": "true",
 		"data":    finalResponseData,
@@ -642,29 +653,29 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	accessToken, err := accessTokenCall()
 	if err != nil || accessToken == nil {
-		fmt.Println("Error Getting Token:", err)
+		fmt.Println(timestamp, ":", "Error Getting Token:", err)
 		return
 	}
 	bodyIoUtilData, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(timestamp, ":", err)
 		return
 	}
 
 	reader := strings.NewReader(string(bodyIoUtilData))
 
-	// fmt.Println(payload)
+	// fmt.Println(timestamp,":",payload)
 	req, err := http.NewRequest("POST", "http://34.93.102.191:8086/getTasks", reader)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	var resData []map[string]interface{}
 	json.NewDecoder(res.Body).Decode(&resData)
-	// fmt.Println("resData is : ", resData)
+	// fmt.Println(timestamp,":","resData is : ", resData)
 	if resData == nil {
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"success": "false",
@@ -684,9 +695,9 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 	// finalResponseData = append(finalResponseData, resData)
 	for key, value := range resData {
 		tempData = resData[key]
-		// fmt.Println(tempData)
+		// fmt.Println(timestamp,":",tempData)
 		idP := value["id"]
-		fmt.Println(idP)
+		fmt.Println(timestamp, ":", " Id", idP)
 
 		url := fmt.Sprintf("http://34.93.102.191:8082/v1/tasks/%s/variables/search", idP)
 		method := "POST"
@@ -695,7 +706,7 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 
 		req, err := http.NewRequest(method, url, payload)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(timestamp, ":", err)
 			return
 		}
 
@@ -706,14 +717,14 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 
 		res, err := client.Do(req)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(timestamp, ":", err)
 			return
 		}
 		defer res.Body.Close()
 
 		var resTaskVariables []map[string]string
 		json.NewDecoder(res.Body).Decode(&resTaskVariables)
-		// fmt.Println("Response From Api Call of Task Variables Search:==", resTaskVariables)
+		// fmt.Println(timestamp,":","Response From Api Call of Task Variables Search:==", resTaskVariables)
 		extractedData := make(map[string]interface{})
 		extractedData["id"] = idP
 		for _, value := range resTaskVariables {
@@ -723,18 +734,18 @@ func nextFormHandler(response http.ResponseWriter, request *http.Request) {
 		}
 		// var newReqData map[string]interface{}
 		// json.NewDecoder(res.Body).Decode(&newReqData)
-		// fmt.Println(newReqData)
+		// fmt.Println(timestamp,":",newReqData)
 		// finalResponseData = append(finalResponseData, extractedData)
 
 		for key, value := range tempData {
 			extractedData[key] = value
 		}
 
-		fmt.Println(extractedData)
+		// fmt.Println(timestamp, ":", extractedData)
 		finalResponseData = append(finalResponseData, extractedData)
 	}
 	// final=append(resData, finalResponseData)
-	// fmt.Println("Final Data Sending From Api:===", finalResponseData)
+	fmt.Println(timestamp, ":", "Final Data Sending From Api:===", finalResponseData)
 	if finalResponseData == nil {
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"success": "false",
@@ -762,20 +773,20 @@ func setPassword(Token interface{}, userId string, resPass string) *http.Respons
 	payload := strings.NewReader(send)
 	req, err := http.NewRequest(method, url, payload)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	accessToken := fmt.Sprintf("Bearer %s", Token)
 	req.Header.Add("Authorization", accessToken)
 	req.Header.Add("Content-Type", "application/json")
 	respPassword, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	if respPassword.StatusCode == 204 {
-		fmt.Println("Password set successfully")
+		fmt.Println(timestamp, ":", "Password set successfully")
 	} else {
 
-		fmt.Println("Failed to set password")
+		fmt.Println(timestamp, ":", "Failed to set password")
 	}
 	return respPassword
 }
@@ -797,14 +808,14 @@ func RoleAssign(Token interface{}, respPassword *http.Response, userId string, r
 	payload := strings.NewReader(dataToSend)
 	req, err := http.NewRequest(method, url, payload)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	accessToken := fmt.Sprintf("Bearer %s", Token)
 	req.Header.Add("Authorization", accessToken)
 	req.Header.Add("Content-Type", "application/json")
 	respDatacheck, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	if respDatacheck.StatusCode == 204 && respPassword.StatusCode == 204 {
 		//  Send Details To The User
@@ -820,13 +831,13 @@ func RoleAssign(Token interface{}, respPassword *http.Response, userId string, r
 			"Success": "True",
 			"Message": "Check Mail For Id And Password",
 		})
-		fmt.Println("Role Assigned successfully")
+		fmt.Println(timestamp, ":", "Role Assigned successfully")
 	} else {
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"Success": "false",
 			"Message": "User Created But Failed To Assign Role || Password",
 		})
-		fmt.Println("Failed to Assign Role")
+		fmt.Println(timestamp, ":", "Failed to Assign Role")
 	}
 }
 
@@ -838,18 +849,18 @@ func createUserHandler(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	Token, err := utils.AccessTokenCall()
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	var incBodyData User
 
 	//Username Generator
 	// fake := faker.New()
 	// username:=fake.Person().FirstName()
-	// fmt.Println(username+" User Generated")
+	// fmt.Println(timestamp,":",username+" User Generated")
 
 	err = json.NewDecoder(request.Body).Decode(&incBodyData)
 	if err != nil {
-		fmt.Println("Error", err)
+		fmt.Println(timestamp, ":", "Error", err)
 	}
 	url := "https://34.93.102.191:18080/auth/admin/realms/camunda-platform/users"
 	method := "POST"
@@ -865,44 +876,44 @@ func createUserHandler(response http.ResponseWriter, request *http.Request) {
 
 	req, err := http.NewRequest(method, url, payload)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 	accessToken := fmt.Sprintf("Bearer %s", Token)
 	req.Header.Add("Authorization", accessToken)
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println(timestamp, ":", "Error:", err)
 	}
 
 	var responseCreateUser map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&responseCreateUser)
 	if err != nil {
-		fmt.Println("Error", err)
+		fmt.Println(timestamp, ":", "Error", err)
 	}
-	// fmt.Println(responseCreateUser)
+	// fmt.Println(timestamp,":",responseCreateUser)
 
 	if resp.StatusCode == 201 {
-		fmt.Println("User created successfully")
+		fmt.Println(timestamp, ":", "User created successfully")
 
 		//password Generator
 		resPass, err := password.Generate(4, 4, 0, false, false)
 		if err != nil {
-			fmt.Println("Error:", err)
+			fmt.Println(timestamp, ":", "Error:", err)
 		}
 		/*
 			------------->[...........................GET THE USER ID FOR ROLE ASSIGNMENT................ ...............]
 		*/
 		userid, err := utils.GetUserId(incBodyData.FirstName, accessToken)
 		if err != nil {
-			fmt.Println("Error:", err)
+			fmt.Println(timestamp, ":", "Error:", err)
 		}
 
 		userId, ok := userid.(string)
-		fmt.Println(userId, "Received")
+		fmt.Println(timestamp, ":", userId, "Received")
 
 		if !ok {
-			fmt.Println("Error Converting userID")
+			fmt.Println(timestamp, ":", "Error Converting userID")
 		}
 		//function to set Password Of the user
 		respPassword := setPassword(Token, userId, resPass)
@@ -916,7 +927,7 @@ func createUserHandler(response http.ResponseWriter, request *http.Request) {
 			"Success": "false",
 			"Message": responseCreateUser["errorMessage"],
 		})
-		fmt.Println("Failed to create user")
+		fmt.Println(timestamp, ":", "Failed to create user")
 	}
 
 }
