@@ -395,7 +395,7 @@ func completeHandler(response http.ResponseWriter, request *http.Request) {
 		log.Println("Task Completed SuccessFully")
 		json.NewEncoder(response).Encode(map[string]interface{}{
 			"Success": "True",
-			"Message": "Task Completed SuccessFully",
+			"message": "Task Completed SuccessFully",
 			"Data":    responseData,
 		})
 	}
