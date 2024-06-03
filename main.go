@@ -380,6 +380,12 @@ func completeHandler(response http.ResponseWriter, request *http.Request) {
 	responseData := completeTask(&incData, Token.(string))
 	// fmt.Println(timestamp,":",responseData)
 
+	//completed Task Handle here
+	if responseData["message"] == "Task is not active" {
+		json.NewEncoder(response).Encode(responseData)
+		return
+	}
+
 	TaskState, ok := responseData["taskState"]
 	if TaskState == "" && !ok {
 		errorMessage, _ := responseData["message"].(string)
